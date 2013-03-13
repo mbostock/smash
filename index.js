@@ -1,5 +1,6 @@
 var fs = require("fs"),
     path = require("path"),
+    events = require("events"),
     stream = require("stream"),
     queue = require("queue-async");
 
@@ -7,54 +8,69 @@ module.exports = smash;
 smash.readAllImports = readAllImports;
 smash.readImports = readImports;
 
-function smash(files) {
-  var s = new stream.Transform({encoding: "utf8", decodeStrings: false}),
-      last = "";
+// Returns a readable stream for the specified files.
+// All imports are expanded the first time they are encountered.
+// Subsequent redundant imports are ignored.
+function smash(files, encoding) {
+  if (!encoding) encoding = "utf8";
 
-  function sendLine(line) {
-    if (line && !/^import\b/.test(line)) s.push(line + "\n");
+  var s = new stream.PassThrough({encoding: encoding, decodeStrings: false}),
+      q = queue(1),
+      fileMap = {};
+
+  // Streams the specified file and any imported files to the output stream. If
+  // the specified file has already been streamed, does nothing and immediately
+  // invokes the callback. Otherwise, the file is streamed in chunks, with
+  // imports expanded and resolved as necessary.
+  function streamAllFiles(file, callback) {
+    if (file in fileMap) return void callback(null);
+    fileMap[file] = true;
+
+    // Create a serialized queue with an initial guarding callback. This guard
+    // ensures that the queue does not end prematurely; it only ends when the
+    // entirety of the input file has been streamed, including all imports.
+    var c, q = queue(1).defer(function(callback) { c = callback; });
+
+    // The "error" and "end" events can be sent immediately to the guard
+    // callback, so that streaming terminates immediately on error or end.
+    // Otherwise, imports are stream recursively, and chunks are set serially.
+    readStream(file, encoding)
+        .on("error", c)
+        .on("import", function(file) { q.defer(streamAllFiles, file); })
+        .on("data", function(chunk) { q.defer(function(callback) { s.write(chunk, callback); }); })
+        .on("end", c);
+
+    // This last callback is only invoked when the file is fully streamed.
+    q.awaitAll(callback);
   }
 
-  s._transform = function(chunk, encoding, callback) {
-    var lines = chunk.split("\n");
-    if (lines.length > 1) {
-      lines[0] = last + lines[0];
-      last = lines.pop();
-      lines.forEach(sendLine);
-    } else {
-      last += chunk;
-    }
-    callback();
-  };
+  // Stream each file serially.
+  files.forEach(function(file) {
+    q.defer(streamAllFiles, file);
+  });
 
-  readAllImports(files, function(error, files) {
-    if (error) return void s.emit("error", error);
-    var q = queue(1);
-    files.forEach(function(file) {
-      q.defer(function(callback) {
-        fs.createReadStream(file, {encoding: "utf8"})
-            .on("open", function() { this.pipe(s, {end: false}); })
-            .on("error", callback)
-            .on("end", function() { sendLine(last); last = ""; callback(); });
-      });
-    });
-    q.await(function(error) {
-      if (error) s.emit("error", error);
-      else s.end();
-    });
+  // When all files are streamed, or an error occurs, we're done!
+  q.awaitAll(function(error) {
+    if (error) s.emit("error", error);
+    else s.end();
   });
 
   return s;
 }
 
-function readAllImports(files, callback) {
+// Reads all the imports from the specified files, returning an array of files.
+// The returned array is in dependency order and only contains unique entries.
+// The returned arrays also includes any input files at the end.
+function readAllImports(files, encoding, callback) {
+  if (arguments.length < 3) callback = encoding, encoding = null;
+
   var fileMap = {},
       allFiles = [];
 
   function readAllImports(file, callback) {
     if (file in fileMap) return callback(null);
     fileMap[file] = true;
-    readImports(file, function(error, files) {
+    readImports(file, encoding, function(error, files) {
       if (error) return void callback(error);
       var q = queue(1);
       files.forEach(function(file) {
@@ -76,30 +92,51 @@ function readAllImports(files, callback) {
   });
 }
 
-function readImports(file, callback) {
-  var directory = path.dirname(file),
+// Reads the import statements from the specified file, returning an array of
+// files. Unlike readAllImports, this does not recursively traverse import
+// statements; it only returns import statements in the specified input file.
+// Also unlike readAllImports, this method returns every import statement,
+// including redundant imports and self-imports.
+function readImports(file, encoding, callback) {
+  if (arguments.length < 3) callback = encoding, encoding = null;
+
+  var files = [];
+
+  readStream(file, encoding)
+      .on("import", function(file) { files.push(file); })
+      .on("error", callback)
+      .on("end", function() { callback(null, files); });
+}
+
+// Returns a stream for the specified file. The returned emitter emits "import"
+// events whenever an import statement is encountered, and "data" events
+// whenever normal text is encountered, in addition to the standard "error" and
+// "end" events.
+function readStream(file, encoding) {
+  if (!encoding) encoding = "utf8";
+
+  var emitter = new events.EventEmitter(),
+      directory = path.dirname(file),
       extension = path.extname(file);
-  fs.readFile(file, "utf8", function(error, text) {
-    if (error) return void callback(error);
-    var files = [];
 
-    try {
-      text.split("\n").forEach(function(line, i) {
-        if (/^import\b/.test(line)) {
-          var match = /^import\s+"([^"]+)"\s*;?\s*(?:\/\/.*)?$/.exec(line);
-          if (match) {
-            var target = match[1];
-            if (!path.extname(target)) target += extension;
-            files.push(path.join(directory, target));
-          } else {
-            throw new Error("invalid import: " + file + ":" + i + ": " + line);
-          }
+  fs.readFile(file, encoding, function(error, text) {
+    if (error) return void emitter.emit("error", error);
+    text.split("\n").some(function(line, i) {
+      if (/^import\b/.test(line)) {
+        var match = /^import\s+"([^"]+)"\s*;?\s*(?:\/\/.*)?$/.exec(line);
+        if (match) {
+          var target = match[1];
+          if (!path.extname(target)) target += extension;
+          emitter.emit("import", path.join(directory, target));
+        } else {
+          emitter.emit("error", new Error("invalid import: " + file + ":" + i + ": " + line));
+          return true;
         }
-      });
-    } catch (e) {
-      return void callback(e);
-    }
-
-    callback(null, files);
+      } else if (line) {
+        emitter.emit("data", line + "\n"); // TODO combine lines?
+      }
+    }) || emitter.emit("end");
   });
+
+  return emitter;
 }
