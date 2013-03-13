@@ -1,0 +1,30 @@
+{
+  "name": "smash",
+  "version": "0.0.1",
+  "description": "Concanate files together using import statements.",
+  "keywords": [
+    "import",
+    "module"
+  ],
+  "author": {
+    "name": "Mike Bostock",
+    "url": "http://bost.ocks.org/mike"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mbostock/smash.git"
+  },
+  "main": "index.js",
+  "bin": {
+    "smash": "smash"
+  },
+  "dependencies": {
+    "queue-async": "1.0.x"
+  },
+  "devDependencies": {
+    "vows": "0.7.x"
+  },
+  "scripts": {
+    "test": "node_modules/.bin/vows"
+  }
+}

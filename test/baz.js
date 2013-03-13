@@ -1,0 +1,3 @@
+function baz() {
+  return "baz";
+}
