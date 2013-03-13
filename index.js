@@ -69,11 +69,12 @@ function readAllImports(files, encoding, callback) {
 
   function readRecursive(file, callback) {
     if (file in fileMap) return callback(null);
-    fileMap[file] = true;
+    var dependencies = fileMap[file] = {};
     readImports(file, encoding, function(error, files) {
       if (error) return void callback(error);
       var q = queue(1);
       files.forEach(function(file) {
+        dependencies[file] = true;
         q.defer(readRecursive, file);
       });
       q.awaitAll(function(error) {
@@ -88,7 +89,7 @@ function readAllImports(files, encoding, callback) {
     q.defer(readRecursive, file);
   });
   q.awaitAll(function(error) {
-    callback(error, error ? null : allFiles);
+    callback(error, error ? null : allFiles, error ? null : fileMap);
   });
 }
 

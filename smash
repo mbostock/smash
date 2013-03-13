@@ -10,4 +10,18 @@ if (argv[2] === "--list") {
   });
 }
 
+if (argv[2] === "--graph") {
+  return void smash.readAllImports(argv.slice(3), function(error, files, graph) {
+    if (error) throw error;
+    files.forEach(function(file) {
+      var children = graph[file],
+          dependencies = [];
+      for (var child in children) dependencies.push(child);
+      if (dependencies.length) {
+        console.log(file + ": " + dependencies.join(" "));
+      }
+    });
+  });
+}
+
 smash(argv.slice(2)).pipe(process.stdout);
