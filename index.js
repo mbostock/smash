@@ -33,7 +33,7 @@ function smash(files, encoding) {
 
     // The "error" and "end" events can be sent immediately to the guard
     // callback, so that streaming terminates immediately on error or end.
-    // Otherwise, imports are stream recursively, and chunks are set serially.
+    // Otherwise, imports are streamed recursively and chunks are sent serially.
     readStream(file, encoding)
         .on("error", c)
         .on("import", function(file) { q.defer(streamRecursive, file); })
