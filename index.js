@@ -6,6 +6,7 @@ var fs = require("fs"),
 
 module.exports = smash;
 smash.version = require("./package").version;
+smash.readGraph = readGraph;
 smash.readAllImports = readAllImports;
 smash.readImports = readImports;
 
@@ -47,7 +48,7 @@ function smash(files, encoding) {
 
   // Stream each file serially.
   files.forEach(function(file) {
-    q.defer(streamRecursive, file);
+    q.defer(streamRecursive, expandFile(file, defaultExtension));
   });
 
   // When all files are streamed, or an error occurs, we're done!
@@ -57,6 +58,37 @@ function smash(files, encoding) {
   });
 
   return s;
+}
+
+// Returns the network of imports, starting with the specified input files.
+// For each file in the returned map, an array specifies the set of files
+// immediately imported by that file. This array is in order of import, and may
+// contain duplicate entries.
+function readGraph(files, encoding, callback) {
+  if (arguments.length < 3) callback = encoding, encoding = null;
+
+  var fileMap = {};
+
+  function readRecursive(file, callback) {
+    if (file in fileMap) return callback(null);
+    readImports(file, encoding, function(error, files) {
+      if (error) return void callback(error);
+      var q = queue(1);
+      fileMap[file] = files;
+      files.forEach(function(file) {
+        q.defer(readRecursive, file);
+      });
+      q.awaitAll(callback);
+    });
+  }
+
+  var q = queue(1);
+  files.forEach(function(file) {
+    q.defer(readRecursive, expandFile(file, defaultExtension));
+  });
+  q.awaitAll(function(error) {
+    callback(error, error ? null : fileMap);
+  });
 }
 
 // Reads all the imports from the specified files, returning an array of files.
@@ -86,7 +118,7 @@ function readAllImports(files, encoding, callback) {
 
   var q = queue(1);
   files.forEach(function(file) {
-    q.defer(readRecursive, file);
+    q.defer(readRecursive, expandFile(file, defaultExtension));
   });
   q.awaitAll(function(error) {
     callback(error, error ? null : allFiles);
@@ -120,8 +152,7 @@ function readStream(file, encoding) {
       directory = path.dirname(file),
       extension = path.extname(file) || defaultExtension;
 
-  if (/\/$/.test(file)) file += "index" + extension;
-  else if (!path.extname(file)) file += extension;
+  file = expandFile(file, extension);
 
   fs.readFile(file, encoding, function(error, text) {
     if (error) return void emitter.emit("error", error);
@@ -129,10 +160,7 @@ function readStream(file, encoding) {
       if (/^import\b/.test(line)) {
         var match = /^import\s+"([^"]+)"\s*;?\s*(?:\/\/.*)?$/.exec(line);
         if (match) {
-          var target = match[1];
-          if (/\/$/.test(target)) target += "index" + extension;
-          else if (!path.extname(target)) target += extension;
-          emitter.emit("import", path.join(directory, target));
+          emitter.emit("import", path.join(directory, expandFile(match[1], extension)));
         } else {
           emitter.emit("error", new Error("invalid import: " + file + ":" + i + ": " + line));
           return true;
@@ -144,6 +172,12 @@ function readStream(file, encoding) {
   });
 
   return emitter;
+}
+
+function expandFile(file, extension) {
+  if (/\/$/.test(file)) file += "index" + extension;
+  else if (!path.extname(file)) file += extension;
+  return file;
 }
 
 var defaultExtension = ".js";

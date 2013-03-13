@@ -14,7 +14,12 @@ var argv = optimist
 + "times, only the first instance of the file is included.")
 
     .options("list", {
-      describe: "ouput the imported file names, not their contents",
+      describe: "ouput a list of imported files",
+      type: "boolean",
+      default: false
+    })
+    .options("graph", {
+      describe: "ouput the import network in Makefile format",
       type: "boolean",
       default: false
     })
@@ -23,9 +28,18 @@ var argv = optimist
       type: "boolean",
       default: false
     })
+    .check(function(argv) {
+      if (argv.list && argv.graph) throw new Error("--list and --graph are exclusive");
+    })
+    .demand(1)
     .argv;
 
 if (argv.help) return optimist.showHelp();
+
+if (argv.graph) return void smash.readGraph(argv._, function(error, files) {
+  if (error) throw error;
+  for (var file in files) console.log(file + ": " + files[file].join(" "));
+});
 
 if (argv.list) return void smash.readAllImports(argv._, function(error, files) {
   if (error) throw error;
