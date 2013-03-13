@@ -11,14 +11,16 @@ function smash(files) {
   var s = new stream.Transform({encoding: "utf8", decodeStrings: false}),
       last = "";
 
+  function sendLine(line) {
+    if (line && !/^import\b/.test(line)) s.push(line + "\n");
+  }
+
   s._transform = function(chunk, encoding, callback) {
     var lines = chunk.split("\n");
     if (lines.length > 1) {
       lines[0] = last + lines[0];
       last = lines.pop();
-      lines.forEach(function(line) {
-        if (!/^import\b/.test(line)) s.push(line + "\n");
-      });
+      lines.forEach(sendLine);
     } else {
       last += chunk;
     }
@@ -33,7 +35,7 @@ function smash(files) {
         fs.createReadStream(file, {encoding: "utf8"})
             .on("open", function() { this.pipe(s, {end: false}); })
             .on("error", callback)
-            .on("end", callback);
+            .on("end", function() { sendLine(last); last = ""; callback(); });
       });
     });
     q.await(function(error) {
