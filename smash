@@ -1,5 +1,13 @@
 #!/usr/bin/env node
 
-var smash = require("./");
+var smash = require("./"),
+    argv = process.argv;
 
-smash(process.argv.slice(2)).pipe(process.stdout);
+if (argv[2] === "--list") {
+  return void smash.readAllImports(argv.slice(3), function(error, files) {
+    if (error) throw error;
+    console.log(files.join("\n"));
+  });
+}
+
+smash(argv.slice(2)).pipe(process.stdout);

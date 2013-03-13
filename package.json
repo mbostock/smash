@@ -1,6 +1,6 @@
 {
   "name": "smash",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Concanate files together using import statements.",
   "keywords": [
     "import",
