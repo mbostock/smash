@@ -1,13 +1,35 @@
 #!/usr/bin/env node
 
 var smash = require("./"),
-    argv = process.argv;
+    optimist = require("optimist");
 
-if (argv[2] === "--list") {
-  return void smash.readAllImports(argv.slice(3), function(error, files) {
-    if (error) throw error;
-    console.log(files.join("\n"));
-  });
-}
+var argv = optimist
+    .usage("Usage: \033[1msmash\033[0m [options] [file …]\n\n"
 
-smash(argv.slice(2)).pipe(process.stdout);
++ "Version: " + smash.version + "\n\n"
+
++ "Concatenates one or more input files, outputting a single merged file.\n"
++ "Any import statements in the input files are expanded in-place to the\n"
++ "contents of the imported file. If the same file is imported multiple\n"
++ "times, only the first instance of the file is included.")
+
+    .options("list", {
+      describe: "ouput the imported file names, not their contents",
+      type: "boolean",
+      default: false
+    })
+    .options("help", {
+      describe: "display this helpful message",
+      type: "boolean",
+      default: false
+    })
+    .argv;
+
+if (argv.help) return optimist.showHelp();
+
+if (argv.list) return void smash.readAllImports(argv._, function(error, files) {
+  if (error) throw error;
+  console.log(files.join("\n"));
+});
+
+smash(argv._).pipe(process.stdout);

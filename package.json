@@ -19,6 +19,7 @@
     "smash": "smash"
   },
   "dependencies": {
+    "optimist": "0.3.x",
     "queue-async": "1.0.x"
   },
   "devDependencies": {

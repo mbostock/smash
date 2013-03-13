@@ -5,6 +5,7 @@ var fs = require("fs"),
     queue = require("queue-async");
 
 module.exports = smash;
+smash.version = require("./package").version;
 smash.readAllImports = readAllImports;
 smash.readImports = readImports;
 
