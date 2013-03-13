@@ -117,7 +117,10 @@ function readStream(file, encoding) {
 
   var emitter = new events.EventEmitter(),
       directory = path.dirname(file),
-      extension = path.extname(file);
+      extension = path.extname(file) || defaultExtension;
+
+  if (/\/$/.test(file)) file += "index" + extension;
+  else if (!path.extname(file)) file += extension;
 
   fs.readFile(file, encoding, function(error, text) {
     if (error) return void emitter.emit("error", error);
@@ -126,7 +129,8 @@ function readStream(file, encoding) {
         var match = /^import\s+"([^"]+)"\s*;?\s*(?:\/\/.*)?$/.exec(line);
         if (match) {
           var target = match[1];
-          if (!path.extname(target)) target += extension;
+          if (/\/$/.test(target)) target += "index" + extension;
+          else if (!path.extname(target)) target += extension;
           emitter.emit("import", path.join(directory, target));
         } else {
           emitter.emit("error", new Error("invalid import: " + file + ":" + i + ": " + line));
@@ -140,3 +144,5 @@ function readStream(file, encoding) {
 
   return emitter;
 }
+
+var defaultExtension = ".js";

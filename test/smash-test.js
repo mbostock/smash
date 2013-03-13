@@ -21,7 +21,9 @@ suite.addBatch({
     "with redundant input files": testCase(["test/foo.js", "test/foo.js"], "test/foo.js"),
     "on a file with multiple redundant imports": testCase(["test/imports-foo-foo-bar-foo.js"], "test/imports-foo-foo-bar-foo-expected.js"),
     "when a file imports itself": testCase(["test/imports-self.js"], "test/foo.js"),
-    "when circular imports are encountered": testCase(["test/imports-circular-foo.js"], "test/imports-circular-foo-expected.js")
+    "when circular imports are encountered": testCase(["test/imports-circular-foo.js"], "test/imports-circular-foo-expected.js"),
+    "when the input is a directory": testCase(["test/"], "test/index.js"),
+    "when the input is missing a file extension": testCase(["test/imports-index"], "test/index.js")
   }
 });
 
