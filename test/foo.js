@@ -1,5 +1,1 @@
-import "bar";
-
-function foo() {
-  return "foo" + bar();
-}
+var foo;

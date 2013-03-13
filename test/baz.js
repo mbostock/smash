@@ -1,3 +1,1 @@
-function baz() {
-  return "baz";
-}
+var baz;

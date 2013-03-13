@@ -83,18 +83,22 @@ function readImports(file, callback) {
     if (error) return void callback(error);
     var files = [];
 
-    text.split("\n").forEach(function(line, i) {
-      if (/^import\b/.test(line)) {
-        var match = /^import\s+"([^"]+)"\s*;?\s*$/.exec(line);
-        if (match) {
-          var target = match[1];
-          if (!path.extname(target)) target += extension;
-          files.push(path.join(directory, target));
-        } else {
-          throw new Error("invalid import: " + file + ":" + i + ": " + line);
+    try {
+      text.split("\n").forEach(function(line, i) {
+        if (/^import\b/.test(line)) {
+          var match = /^import\s+"([^"]+)"\s*;?\s*(?:\/\/.*)?$/.exec(line);
+          if (match) {
+            var target = match[1];
+            if (!path.extname(target)) target += extension;
+            files.push(path.join(directory, target));
+          } else {
+            throw new Error("invalid import: " + file + ":" + i + ": " + line);
+          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      return void callback(e);
+    }
 
     callback(null, files);
   });
