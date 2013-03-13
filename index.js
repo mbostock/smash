@@ -22,7 +22,7 @@ function smash(files, encoding) {
   // the specified file has already been streamed, does nothing and immediately
   // invokes the callback. Otherwise, the file is streamed in chunks, with
   // imports expanded and resolved as necessary.
-  function streamAllFiles(file, callback) {
+  function streamRecursive(file, callback) {
     if (file in fileMap) return void callback(null);
     fileMap[file] = true;
 
@@ -36,7 +36,7 @@ function smash(files, encoding) {
     // Otherwise, imports are stream recursively, and chunks are set serially.
     readStream(file, encoding)
         .on("error", c)
-        .on("import", function(file) { q.defer(streamAllFiles, file); })
+        .on("import", function(file) { q.defer(streamRecursive, file); })
         .on("data", function(chunk) { q.defer(function(callback) { s.write(chunk, callback); }); })
         .on("end", c);
 
@@ -46,7 +46,7 @@ function smash(files, encoding) {
 
   // Stream each file serially.
   files.forEach(function(file) {
-    q.defer(streamAllFiles, file);
+    q.defer(streamRecursive, file);
   });
 
   // When all files are streamed, or an error occurs, we're done!
@@ -67,14 +67,14 @@ function readAllImports(files, encoding, callback) {
   var fileMap = {},
       allFiles = [];
 
-  function readAllImports(file, callback) {
+  function readRecursive(file, callback) {
     if (file in fileMap) return callback(null);
     fileMap[file] = true;
     readImports(file, encoding, function(error, files) {
       if (error) return void callback(error);
       var q = queue(1);
       files.forEach(function(file) {
-        q.defer(readAllImports, file);
+        q.defer(readRecursive, file);
       });
       q.awaitAll(function(error) {
         if (!error) allFiles.push(file);
@@ -85,7 +85,7 @@ function readAllImports(files, encoding, callback) {
 
   var q = queue(1);
   files.forEach(function(file) {
-    q.defer(readAllImports, file);
+    q.defer(readRecursive, file);
   });
   q.awaitAll(function(error) {
     callback(error, error ? null : allFiles);
