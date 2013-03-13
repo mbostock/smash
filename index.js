@@ -26,6 +26,7 @@ function smash(files) {
   };
 
   readAllImports(files, function(error, files) {
+    if (error) return void s.emit("error", error);
     var q = queue(1);
     files.forEach(function(file) {
       q.defer(function(callback) {
@@ -52,6 +53,7 @@ function readAllImports(files, callback) {
     if (file in fileMap) return callback(null);
     fileMap[file] = true;
     readImports(file, function(error, files) {
+      if (error) return void callback(error);
       var q = queue(1);
       files.forEach(function(file) {
         q.defer(readAllImports, file);
@@ -76,7 +78,7 @@ function readImports(file, callback) {
   var directory = path.dirname(file),
       extension = path.extname(file);
   fs.readFile(file, "utf8", function(error, text) {
-    if (error) return callback(error);
+    if (error) return void callback(error);
     var files = [];
 
     text.split("\n").forEach(function(line, i) {

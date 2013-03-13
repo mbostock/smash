@@ -2,7 +2,4 @@
 
 var smash = require("./");
 
-smash(process.argv.slice(2))
-    .pipe(process.stdout)
-    .on("error", function() { console.warn("error"); })
-    .on("end", function() { console.warn("end"); });
+smash(process.argv.slice(2)).pipe(process.stdout);
