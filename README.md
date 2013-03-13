@@ -33,3 +33,10 @@ function foo() {
 ```
 
 SMASH HANDLE CIRCULAR AND REDUNDANT IMPORTS GOOD. SMASH GOOD. SMASH.
+
+SMASH LIKE MAKE, TOO.
+
+```Makefile
+bundle.js: $(shell smash --list src/bundle.js)
+  smash src/bundle.js > bundle.js
+```
