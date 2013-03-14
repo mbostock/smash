@@ -1,22 +1,19 @@
 var fs = require("fs"),
+    vm = require("vm"),
     path = require("path"),
     events = require("events"),
     stream = require("stream"),
     queue = require("queue-async");
 
 module.exports = smash;
+
 smash.version = require("./package").version;
-smash.readGraph = readGraph;
-smash.readAllImports = readAllImports;
-smash.readImports = readImports;
 
 // Returns a readable stream for the specified files.
 // All imports are expanded the first time they are encountered.
 // Subsequent redundant imports are ignored.
-function smash(files, encoding) {
-  if (!encoding) encoding = "utf8";
-
-  var s = new stream.PassThrough({encoding: encoding, decodeStrings: false}),
+function smash(files) {
+  var s = new stream.PassThrough({encoding: "utf8", decodeStrings: false}),
       q = queue(1),
       fileMap = {};
 
@@ -36,7 +33,7 @@ function smash(files, encoding) {
     // The "error" and "end" events can be sent immediately to the guard
     // callback, so that streaming terminates immediately on error or end.
     // Otherwise, imports are streamed recursively and chunks are sent serially.
-    readStream(file, encoding)
+    readStream(file)
         .on("error", c)
         .on("import", function(file) { q.defer(streamRecursive, file); })
         .on("data", function(chunk) { q.defer(function(callback) { s.write(chunk, callback); }); })
@@ -60,18 +57,26 @@ function smash(files, encoding) {
   return s;
 }
 
+// Loads the specified files and their imports, then evaluates the specified
+// expression in the context of the concatenated code.
+smash.load = function(files, expression, callback) {
+  var chunks = [];
+  smash(files)
+      .on("error", callback)
+      .on("data", function(chunk) { chunks.push(chunk); })
+      .on("end", function() { callback(null, vm.runInNewContext(chunks.join("") + ";" + expression)); });
+};
+
 // Returns the network of imports, starting with the specified input files.
 // For each file in the returned map, an array specifies the set of files
 // immediately imported by that file. This array is in order of import, and may
 // contain duplicate entries.
-function readGraph(files, encoding, callback) {
-  if (arguments.length < 3) callback = encoding, encoding = null;
-
+smash.readGraph = function(files, callback) {
   var fileMap = {};
 
   function readRecursive(file, callback) {
     if (file in fileMap) return callback(null);
-    readImports(file, encoding, function(error, files) {
+    smash.readImports(file, function(error, files) {
       if (error) return void callback(error);
       var q = queue(1);
       fileMap[file] = files;
@@ -89,21 +94,19 @@ function readGraph(files, encoding, callback) {
   q.awaitAll(function(error) {
     callback(error, error ? null : fileMap);
   });
-}
+};
 
 // Reads all the imports from the specified files, returning an array of files.
 // The returned array is in dependency order and only contains unique entries.
 // The returned arrays also includes any input files at the end.
-function readAllImports(files, encoding, callback) {
-  if (arguments.length < 3) callback = encoding, encoding = null;
-
+smash.readAllImports = function(files, callback) {
   var fileMap = {},
       allFiles = [];
 
   function readRecursive(file, callback) {
     if (file in fileMap) return callback(null);
     fileMap[file] = true;
-    readImports(file, encoding, function(error, files) {
+    smash.readImports(file, function(error, files) {
       if (error) return void callback(error);
       var q = queue(1);
       files.forEach(function(file) {
@@ -123,38 +126,34 @@ function readAllImports(files, encoding, callback) {
   q.awaitAll(function(error) {
     callback(error, error ? null : allFiles);
   });
-}
+};
 
 // Reads the import statements from the specified file, returning an array of
 // files. Unlike readAllImports, this does not recursively traverse import
 // statements; it only returns import statements in the specified input file.
 // Also unlike readAllImports, this method returns every import statement,
 // including redundant imports and self-imports.
-function readImports(file, encoding, callback) {
-  if (arguments.length < 3) callback = encoding, encoding = null;
-
+smash.readImports = function(file, callback) {
   var files = [];
 
-  readStream(file, encoding)
+  readStream(file)
       .on("import", function(file) { files.push(file); })
       .on("error", callback)
       .on("end", function() { callback(null, files); });
-}
+};
 
 // Returns a stream for the specified file. The returned emitter emits "import"
 // events whenever an import statement is encountered, and "data" events
 // whenever normal text is encountered, in addition to the standard "error" and
 // "end" events.
-function readStream(file, encoding) {
-  if (!encoding) encoding = "utf8";
-
+function readStream(file) {
   var emitter = new events.EventEmitter(),
       directory = path.dirname(file),
       extension = path.extname(file) || defaultExtension;
 
   file = expandFile(file, extension);
 
-  fs.readFile(file, encoding, function(error, text) {
+  fs.readFile(file, "utf8", function(error, text) {
     if (error) return void emitter.emit("error", error);
     text.split("\n").some(function(line, i) {
       if (/^import\b/.test(line)) {

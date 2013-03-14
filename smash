@@ -29,9 +29,10 @@ var argv = optimist
       default: false
     })
     .check(function(argv) {
+      if (argv.help) return;
+      if (!argv._.length) throw new Error("input required");
       if (argv.list && argv.graph) throw new Error("--list and --graph are exclusive");
     })
-    .demand(1)
     .argv;
 
 if (argv.help) return optimist.showHelp();
