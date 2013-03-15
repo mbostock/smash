@@ -14,12 +14,12 @@ var argv = optimist
 + "times, only the first instance of the file is included.")
 
     .options("list", {
-      describe: "ouput a list of imported files",
+      describe: "output a list of imported files",
       type: "boolean",
       default: false
     })
     .options("graph", {
-      describe: "ouput the import network in Makefile format",
+      describe: "output the import network in Makefile format",
       type: "boolean",
       default: false
     })
