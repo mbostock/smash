@@ -161,7 +161,7 @@ function readStream(file) {
 
   fs.readFile(file, "utf8", function(error, text) {
     if (error) return void emitter.emit("error", error);
-    text.split("\n").some(function(line, i) {
+    text.replace(/[\n]$/g, "").split("\n").some(function(line, i) {
       if (/^import\b/.test(line)) {
         var match = /^import\s+"([^"]+)"\s*;?\s*(?:\/\/.*)?$/.exec(line);
         if (match) {
@@ -170,7 +170,7 @@ function readStream(file) {
           emitter.emit("error", new Error("invalid import: " + file + ":" + i + ": " + line));
           return true;
         }
-      } else if (line) {
+      } else {
         emitter.emit("data", line + "\n"); // TODO combine lines?
       }
     }) || emitter.emit("end");
