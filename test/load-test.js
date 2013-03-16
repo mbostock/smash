@@ -8,7 +8,7 @@ suite.addBatch({
   "load": {
     "on a simple file": {
       topic: function() {
-        smash.load(["test/forty-two"], "foo", this.callback);
+        smash.load(["test/data/forty-two"], "foo", this.callback);
       },
       "returns the evaluated expression": function(foo) {
         assert.strictEqual(foo, 42);
