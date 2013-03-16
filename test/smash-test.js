@@ -17,6 +17,8 @@ suite.addBatch({
     "on a file with one import": testCase(["test/imports-foo.js"], "test/imports-foo-expected.js"),
     "on a file with multiple imports": testCase(["test/imports-foo-bar-baz.js"], "test/imports-foo-bar-baz-expected.js"),
     "on a file with nested imports": testCase(["test/imports-imports-foo.js"], "test/imports-imports-foo-expected.js"),
+    "on a file with empty lines": testCase(["test/empty-lines.js"], "test/empty-lines.js"),
+    "on a file which imports a file with empty lines": testCase(["test/import-empty-lines.js"], "test/empty-lines.js"),
     "on multiple input files": testCase(["test/foo.js", "test/bar.js", "test/baz.js"], "test/imports-foo-bar-baz-expected.js"),
     "with redundant input files": testCase(["test/foo.js", "test/foo.js"], "test/foo.js"),
     "on a file with multiple redundant imports": testCase(["test/imports-foo-foo-bar-foo.js"], "test/imports-foo-foo-bar-foo-expected.js"),
