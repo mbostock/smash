@@ -31,5 +31,11 @@
   },
   "scripts": {
     "test": "node_modules/.bin/vows; echo"
-  }
+  },
+  "licenses": [
+    {
+      "type": "BSD",
+      "url": "https://github.com/mbostock/smash/blob/master/LICENSE"
+    }
+  ]
 }
