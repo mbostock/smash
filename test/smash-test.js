@@ -10,6 +10,8 @@ suite.addBatch({
   "smash": {
     "on a file with no imports": testCase(["test/data/foo.js"], "test/data/foo.js"),
     "on a file with imports with trailing comments": testCase(["test/data/trailing-comment-import.js"], "test/data/trailing-comment-import-expected.js"),
+    "on a file with single-quote import syntax": testCase(["test/data/single-quote-import.js"], "test/data/single-quote-import-expected.js"),
+    "on a file with mismatched quote delimiters": testFailureCase(["test/data/mismatched-quotes.js"], "invalid import: test/data/mismatched-quotes.js:0: import 'foo\";"),
     "on a file with invalid import syntax": testFailureCase(["test/data/invalid-import-syntax.js"], "invalid import: test/data/invalid-import-syntax.js:0: import foo;"),
     "on a file with that imports a file that does not exist": testFailureCase(["test/data/imports-not-found.js"], "ENOENT, open 'test/data/not-found.js'"),
     "on a file with a commented-out import": testCase(["test/data/commented-import.js"], "test/data/commented-import.js"),
