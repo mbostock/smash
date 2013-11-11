@@ -18,6 +18,11 @@ var argv = optimist
       type: "boolean",
       default: false
     })
+    .options("ignore-missing", {
+      describe: "ignore missing files instead of throwing an error; applies only to --list and --graph",
+      type: "boolean",
+      default: false
+    })
     .options("graph", {
       describe: "output the import network in Makefile format",
       type: "boolean",
@@ -37,12 +42,12 @@ var argv = optimist
 
 if (argv.help) return optimist.showHelp();
 
-if (argv.graph) return void smash.readGraph(argv._, function(error, files) {
+if (argv.graph) return void smash.readGraph(argv._, argv, function(error, files) {
   if (error) throw error;
   for (var file in files) console.log(file + ": " + files[file].join(" "));
 });
 
-if (argv.list) return void smash.readAllImports(argv._, function(error, files) {
+if (argv.list) return void smash.readAllImports(argv._, argv, function(error, files) {
   if (error) throw error;
   console.log(files.join("\n"));
 });

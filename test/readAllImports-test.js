@@ -44,6 +44,14 @@ suite.addBatch({
         assert.deepEqual(error.message, "ENOENT, open 'test/data/not-found.js'");
       }
     },
+    "on a file with that imports a file that does not exist with --ignore-missing": {
+      topic: function() {
+        smash.readAllImports(["test/data/imports-not-found.js"], {"ignore-missing": true}, this.callback);
+      },
+      "returns the expected imports": function(imports) {
+        assert.deepEqual(imports, ["test/data/not-found.js", "test/data/imports-not-found.js"]);
+      }
+    },
     "on a file with a commented-out import": {
       topic: function() {
         smash.readAllImports(["test/data/commented-import.js"], this.callback);
