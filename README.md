@@ -38,5 +38,5 @@ SMASH LIKE MAKE, TOO.
 
 ```Makefile
 bundle.js: $(shell smash --list src/bundle.js)
-  smash src/bundle.js > bundle.js
+  smash src/bundle.js > $@
 ```
