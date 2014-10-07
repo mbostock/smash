@@ -16,6 +16,14 @@ suite.addBatch({
       "does not pollute the global namespace": function(foo) {
         assert.equal(typeof bar, "undefined");
       }
+    },
+    "with an object literal expression": {
+      topic: function() {
+        smash.load(["test/data/forty-two"], "{foo: foo}", this.callback);
+      },
+      "returns the evaluated expression": function(foo) {
+        assert.deepEqual(foo, {foo: 42});
+      }
     }
   }
 });
