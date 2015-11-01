@@ -48,7 +48,7 @@ suite.addBatch({
       },
       "throws an error with the expected message": function(error) {
         assert.equal(error.code, "ENOENT");
-        assert.equal(error.path, 'test/data/not-found.js');
+        assert.equal(error.path, "test/data/not-found.js");
       }
     },
     "on a file with that imports a file that does not exist with --ignore-missing": {
