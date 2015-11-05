@@ -1,6 +1,6 @@
 # SMASH
 
-SMASH TOGETHER FILES! PROBABLY JAVASCRIPT.
+SMASH TOGETHER FILES! PROBABLY JAVASCRIPT. Documentation in [the wiki](https://github.com/mbostock/smash/wiki)
 
 SAY THIS foo.js:
 
