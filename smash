@@ -28,6 +28,11 @@ var argv = optimist
       type: "boolean",
       default: false
     })
+    .options("jsonConfig", {
+      describe: "ouput the import network in json config format",
+      type: "boolean",
+      default: false
+    })
     .options("help", {
       describe: "display this helpful message",
       type: "boolean",
@@ -45,6 +50,11 @@ if (argv.help) return optimist.showHelp();
 if (argv.graph) return void smash.readGraph(argv._, argv, function(error, files) {
   if (error) throw error;
   for (var file in files) console.log(file + ": " + files[file].join(" "));
+});
+
+if (argv.jsonConfig) return void smash.readConfig(argv._, argv, function(error, files) {
+  if (error) throw error;
+  console.log(JSON.stringify(files, null, 4));
 });
 
 if (argv.list) return void smash.readAllImports(argv._, argv, function(error, files) {

@@ -4,3 +4,4 @@ smash.load = require("./lib/smash/load");
 smash.readGraph = require("./lib/smash/read-graph");
 smash.readAllImports = require("./lib/smash/read-all-imports");
 smash.readImports = require("./lib/smash/read-imports");
+smash.readConfig = require("./lib/smash/read-config");
